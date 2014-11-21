@@ -10,14 +10,8 @@ app.get('/', function(req, res) {
 });
 
 app.get('/deed', function(req, res) {
-	// res.set('Content-Type', 'application/json');
-	// res.send(dummyjson.parse(template));
-
 	res.attachment('deed.json')
-	//following line is not necessary, just experimenting
 	res.setHeader('Content-Type', 'application/octet-stream')
-
-	res.setHeader('Content-Type', 'application/json');
 	res.end(dummyjson.parse(template));
 });
 
