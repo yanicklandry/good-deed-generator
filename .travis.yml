@@ -1,7 +1,7 @@
 language: node_js
 deploy:
-	provider: heroku
-	api_key:
-		secure: t3pO51aqUIJnn5w6NtrWHT1CgSv//KcIz1LCu1tE1IFLUM+lxsm4G5Zpd8ZwtzJchc/pzNuKRpDkJZTTrOOVb4RMjrtCQOFr6m3OnDKAXBqGiUPseFpNizBy4oIoW4vV1hloRshc59ia6YdSWNhsHTlKWJQgGb7C6cyMb68+YOY=
-	app: good-deed-generator
-	on: master
+  provider: heroku
+  api_key:
+    secure: t3pO51aqUIJnn5w6NtrWHT1CgSv//KcIz1LCu1tE1IFLUM+lxsm4G5Zpd8ZwtzJchc/pzNuKRpDkJZTTrOOVb4RMjrtCQOFr6m3OnDKAXBqGiUPseFpNizBy4oIoW4vV1hloRshc59ia6YdSWNhsHTlKWJQgGb7C6cyMb68+YOY=
+  app: good-deed-generator
+  on: master
