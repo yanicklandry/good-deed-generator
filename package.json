@@ -15,5 +15,8 @@
   "dependencies": {
     "dummy-json": "0.0.2",
     "express": "^4.10.2"
+  },
+  "engines": {
+    "node": "0.10.x"
   }
 }
