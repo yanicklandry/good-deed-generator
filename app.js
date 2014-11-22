@@ -13,7 +13,7 @@ var app = express();
 try {
 	_.extend(process.env, require('./config'));
 } catch (err) {
-	console.log('error', err)
+	console.log('error on config', err)
 }
 
 var salt = "";
@@ -51,56 +51,100 @@ var helpers = {
 	}
 };
 
-var generate = function(model) {
-	var template = fs.readFileSync(model + '.hbs', {encoding: 'utf8'});
-	var json = dummyjson.parse(template, {helpers: helpers});
-	//jsonlint.parse(json);
-	return(json);
-};
+var generate = function(model, next) {
+	var uploadedImages = [];
 
+	var uploadOneFile = function() {
+		var localFilePath = __dirname + '/images/cat.jpg';
+		kaiseki.uploadFile(localFilePath, function(err, res, body, success) {
+			if(err) return console.log('error on upload', err);
+			if(!success) return console.log('no success on upload', body);
+			uploadedImages.push({
+				url: body.url,
+				name: body.name
+			});
+			parseTemplate();
+		});
+	};
+
+	var parseTemplate = function() {
+		var template = fs.readFileSync(model + '.hbs', {encoding: 'utf8'});
+		var json = dummyjson.parse(template, {helpers: helpers, data: {images: uploadedImages, image_num: 0}});
+		jsonlint.parse(json);
+		json = JSON.parse(json);
+
+		for(var i=0; i<json.results.length; i++) {
+			json.results[i].media.name = uploadedImages[0].name;
+			json.results[i].media.url = uploadedImages[0].url;
+		}
+		next(json);
+	};
+
+	uploadOneFile();
+};
 
 models.forEach(function(model) {
 	app.get('/' + model, function(req, res) {
-		res.setHeader('Content-Type', 'application/octet-stream');
-		res.attachment(model + '.json');
-		res.end(generate(model));
+		var sendJSON = function(json) {
+			res.setHeader('Content-Type', 'application/octet-stream');
+			res.attachment(model + '.json');
+			res.send(json);
+		}
+		generate(model, sendJSON);
 	});
 	app.get('/' + model + '/api', function(req, res) {
-		var json = JSON.parse(generate(model)).results;
+		var json;
 		var max = process.env.PARSE_COMMANDS_MAX;
+
+		var assignJSON = function(_json) {
+			json = _json.results;
+			createFirstObjects();
+		};
+
+		var createFirstObjects = function() {
+			createObjects(capitalize(model), json, finished);
+		};
+
 		var createObjects = function(model, json, next) {
 			if(json.length > max) {
-				kaiseki.createObjects(model, json.slice(0,max), function(err) {
-					if(err) return console.log(err);
+				kaiseki.createObjects(model, json.slice(0,max), function(err, response, body, success) {
+					if(err) return console.log('error on createObject', err);
+					if(!success) return console.log('no success on createObject', body);
 					createObjects(model, json.slice(max), next);
 				});
 			} else {
 				kaiseki.createObjects(model, json, next);
 			}
-		}
+		};
+
 		var finished = function(err, response, body, success) {
-			if(err) return console.log(err);
+			if(err) return console.log('error on finished', err);
+			if(!success) return console.log('no success on finished', body);
 			res.redirect('/');
 		};
-		createObjects(capitalize(model), json, finished);
+
+		generate(model, assignJSON);
+
 	});
 });
 
 app.get('/', function(req, res) {
 	var html = '<ul>'
 	models.forEach(function(model) {
-		html += '<li><a href="./' + model + '">' + model + '.json</a> <a href="/' + model + '/api">add through API</a></li>';
+		html += '<li><a href="./' + model + '">' + model + '.json</a> ';
+		if(model!=='user')
+			html += '<a href="/' + model + '/api">add through API</a></li>';
+		});
+		html += '</ul>';
+		res.send(html);
 	});
-	html += '</ul>';
-	res.send(html);
-});
 
-bcrypt.genSalt(10, function(err, _salt) {
-	salt = _salt;
-	initApp();
-});
+	bcrypt.genSalt(10, function(err, _salt) {
+		salt = _salt;
+		initApp();
+	});
 
-function initApp() {
-	kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
-	app.listen(process.env.PORT || 3000);
-}
+	function initApp() {
+		kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
+		app.listen(process.env.PORT || 3000);
+	}
