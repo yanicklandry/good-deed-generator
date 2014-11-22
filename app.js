@@ -2,8 +2,11 @@ var fs = require('fs');
 var express = require('express');
 var dummyjson = require('dummy-json');
 var jsonlint = require("jsonlint");
+var randomstring = require("randomstring");
+var bcrypt = require('bcrypt');
 
 var app = express();
+var salt = "";
 
 var models = ['deed', 'user'];
 
@@ -16,6 +19,12 @@ var random = function(low, high) {
 var helpers = {
 	domain: function(options) {
 		return domains[random(0,domains.length)];
+	},
+	token: function() {
+		return randomstring.generate();
+	},
+	password: function(){
+		return bcrypt.hashSync(randomstring.generate(), salt);
 	}
 };
 
@@ -39,4 +48,7 @@ app.get('/', function(req, res) {
 	res.send(html);
 });
 
-app.listen(process.env.PORT || 3000);
+bcrypt.genSalt(10, function(err, _salt) {
+	salt = _salt;
+	app.listen(process.env.PORT || 3000);
+});

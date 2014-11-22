@@ -13,9 +13,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^0.8.0",
     "dummy-json": "0.0.2",
     "express": "^4.10.2",
-    "jsonlint": "^1.6.2"
+    "jsonlint": "^1.6.2",
+    "randomstring": "^1.0.3"
   },
   "engines": {
     "node": "0.10.x"
