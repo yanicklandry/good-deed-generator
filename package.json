@@ -2,10 +2,10 @@
   "name": "good-deed-generator",
   "version": "1.0.0",
   "description": "random data generator for Good Deed",
-  "repository" :
-  { "type" : "git"
-  , "url" : "http://github.com/npm/npm.git"
-},
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/npm/npm.git"
+  },
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -14,7 +14,8 @@
   "license": "ISC",
   "dependencies": {
     "dummy-json": "0.0.2",
-    "express": "^4.10.2"
+    "express": "^4.10.2",
+    "jsonlint": "^1.6.2"
   },
   "engines": {
     "node": "0.10.x"
