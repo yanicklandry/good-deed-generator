@@ -6,6 +6,7 @@ var jsonlint = require("jsonlint");
 var randomstring = require("randomstring");
 var bcrypt = require('bcrypt');
 var Kaiseki = require('kaiseki');
+var async = require('async');
 var kaiseki;
 
 var app = express();
@@ -52,35 +53,32 @@ var helpers = {
 };
 
 var generate = function(model, next) {
-	var uploadedImages = [];
-
-	var uploadOneFile = function() {
-		var localFilePath = __dirname + '/images/cat.jpg';
-		kaiseki.uploadFile(localFilePath, function(err, res, body, success) {
-			if(err) return console.log('error on upload', err);
-			if(!success) return console.log('no success on upload', body);
-			uploadedImages.push({
-				url: body.url,
-				name: body.name
-			});
-			parseTemplate();
-		});
-	};
-
 	var parseTemplate = function() {
 		var template = fs.readFileSync(model + '.hbs', {encoding: 'utf8'});
-		var json = dummyjson.parse(template, {helpers: helpers, data: {images: uploadedImages, image_num: 0}});
+		var json = dummyjson.parse(template, {helpers: helpers});
 		jsonlint.parse(json);
 		json = JSON.parse(json);
 
-		for(var i=0; i<json.results.length; i++) {
-			json.results[i].media.name = uploadedImages[0].name;
-			json.results[i].media.url = uploadedImages[0].url;
-		}
-		next(json);
+		var iterateResults = function(i, nextResult) {
+			var request = require('request').defaults({ encoding: null });
+			request.get('http://thecatapi.com/api/images/get', function (err, res, buffer) {
+				kaiseki.uploadFileBuffer(buffer, 'image/jpeg', 'cat' + i, function(err, res, body, success) {
+					if(err) return console.log('error on uploadFile', err);
+					if(!success) return console.log('no success on uploadFile', body);
+					json.results[i].media.name = body.name;
+					json.results[i].media.url = body.url;
+					nextResult();
+				});
+			});
+		};
+
+		async.each(_.range(json.results.length), iterateResults, function(err){
+			if(err) return console.log(err);
+			next(json);
+		});
 	};
 
-	uploadOneFile();
+	parseTemplate();
 };
 
 models.forEach(function(model) {
