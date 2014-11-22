@@ -1,3 +1,4 @@
+var _ = require('underscore');
 var fs = require('fs');
 var express = require('express');
 var dummyjson = require('dummy-json');
@@ -6,6 +7,13 @@ var randomstring = require("randomstring");
 var bcrypt = require('bcrypt');
 
 var app = express();
+
+try {
+  _.extend(process.env, require('./config'));
+} catch (err) {
+	console.log('error', err)
+}
+
 var salt = "";
 
 var models = ['deed', 'user'];
