@@ -54,7 +54,7 @@ var helpers = {
 var generate = function(model) {
 	var template = fs.readFileSync(model + '.hbs', {encoding: 'utf8'});
 	var json = dummyjson.parse(template, {helpers: helpers});
-	//jsonlint.parse(json);
+	jsonlint.parse(json);
 	return(json);
 };
 
@@ -89,7 +89,9 @@ models.forEach(function(model) {
 app.get('/', function(req, res) {
 	var html = '<ul>'
 	models.forEach(function(model) {
-		html += '<li><a href="./' + model + '">' + model + '.json</a> <a href="/' + model + '/api">add through API</a></li>';
+		html += '<li><a href="./' + model + '">' + model + '.json</a> ';
+		if(model!=='user')
+			html += '<a href="/' + model + '/api">add through API</a></li>';
 	});
 	html += '</ul>';
 	res.send(html);
