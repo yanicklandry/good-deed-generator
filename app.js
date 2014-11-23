@@ -9,24 +9,21 @@ var Kaiseki = require('kaiseki');
 var async = require('async');
 var kaiseki;
 
+//SETUP
 var app = express();
-
 try {
 	_.extend(process.env, require('./config'));
 } catch (err) {
 	console.log('error on config', err)
 }
 
+//GLOBAL VARS
 var salt = "";
-
 var models = ['deed', 'user'];
-
 var domains = ['com', 'net', 'org', 'gov', 'qc.ca'];
+var all_users;
 
 //HELPERS
-var random = function(low, high) {
-	return Math.floor(Math.random() * (high - low) + low);
-};
 var capitalize = function(s)
 {
 	return s && s[0].toUpperCase() + s.slice(1);
@@ -39,10 +36,12 @@ Array.prototype.chunk = function(chunkSize) {
 		})
 	);
 }
-
+Array.prototype.random = function() {
+	return this[_.random(this.length-1)];
+}
 var helpers = {
 	domain: function(options) {
-		return domains[random(0,domains.length)];
+		return domains.random();
 	},
 	token: function() {
 		return randomstring.generate();
@@ -81,6 +80,8 @@ var generate = function(model, next) {
 	parseTemplate();
 };
 
+//ROUTES
+
 models.forEach(function(model) {
 	app.get('/' + model, function(req, res) {
 		var sendJSON = function(json) {
@@ -101,6 +102,7 @@ models.forEach(function(model) {
 
 		var createObjectsInParse = function(model, json, next) {
 			if(model==='User') {
+				// model is User
 				async.each(json, function(userInfo, nextUser) {
 					delete userInfo.bcryptPassword;
 					userInfo.password = randomstring.generate();
@@ -113,7 +115,33 @@ models.forEach(function(model) {
 					next(err, res, null, true);
 				});
 			} else {
-				kaiseki.createObjects(model, json, next);
+				// model is Deed or others
+				async.each(json, function(object, nextObject) {
+					var user_objectId = all_users.random().objectId;
+					object.user = { __type: 'Pointer', className: '_User', objectId: user_objectId };
+					kaiseki.createObject(model, object, function(err, res, body, success) {
+						if(err) return console.log('error on createObject', err);
+						if(!success) return console.log('no success on createObject', body);
+						kaiseki.updateUser(user_objectId, {
+							"deeds": {
+								"__op": "AddRelation",
+								"objects": [
+								{
+									"__type": "Pointer",
+									"className": "Deed",
+									"objectId": body.objectId
+								}
+								]
+							}
+						}, function(err, res, body, success) {
+							if(err) return console.log('error on updateUser', err);
+							if(!success) return console.log('no success on updateUser', body);
+							nextObject();
+						});
+					});
+				}, function(err) {
+					next(err, res, null, true);
+				});
 			}
 		}
 
@@ -150,12 +178,18 @@ app.get('/', function(req, res) {
 	res.send(html);
 });
 
+//INIT
+
+function initApp() {
+	kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
+	kaiseki.masterKey = process.env.PARSE_MASTER_KEY;
+	kaiseki.getUsers(function(err, res, body, success) {
+		all_users = body;
+		app.listen(process.env.PORT || 3000);
+	});
+}
+
 bcrypt.genSalt(10, function(err, _salt) {
 	salt = _salt;
 	initApp();
 });
-
-function initApp() {
-	kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
-	app.listen(process.env.PORT || 3000);
-}
