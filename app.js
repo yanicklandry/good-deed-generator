@@ -102,6 +102,7 @@ models.forEach(function(model) {
 
 		var createObjectsInParse = function(model, json, next) {
 			if(model==='User') {
+				// model is User
 				async.each(json, function(userInfo, nextUser) {
 					delete userInfo.bcryptPassword;
 					userInfo.password = randomstring.generate();
@@ -114,7 +115,33 @@ models.forEach(function(model) {
 					next(err, res, null, true);
 				});
 			} else {
-				kaiseki.createObjects(model, json, next);
+				// model is Deed or others
+				async.each(json, function(object, nextObject) {
+					var user_objectId = all_users.random().objectId;
+					object.user = { __type: 'Pointer', className: '_User', objectId: user_objectId };
+					kaiseki.createObject(model, object, function(err, res, body, success) {
+						if(err) return console.log('error on createObject', err);
+						if(!success) return console.log('no success on createObject', body);
+						kaiseki.updateUser(user_objectId, {
+							"deeds": {
+								"__op": "AddRelation",
+								"objects": [
+								{
+									"__type": "Pointer",
+									"className": "Deed",
+									"objectId": body.objectId
+								}
+								]
+							}
+						}, function(err, res, body, success) {
+							if(err) return console.log('error on updateUser', err);
+							if(!success) return console.log('no success on updateUser', body);
+							nextObject();
+						});
+					});
+				}, function(err) {
+					next(err, res, null, true);
+				});
 			}
 		}
 
@@ -155,7 +182,11 @@ app.get('/', function(req, res) {
 
 function initApp() {
 	kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
-	app.listen(process.env.PORT || 3000);
+	kaiseki.masterKey = process.env.PARSE_MASTER_KEY;
+	kaiseki.getUsers(function(err, res, body, success) {
+		all_users = body;
+		app.listen(process.env.PORT || 3000);
+	});
 }
 
 bcrypt.genSalt(10, function(err, _salt) {
