@@ -96,28 +96,42 @@ models.forEach(function(model) {
 
 		var assignJSON = function(_json) {
 			json = _json.results;
-			createFirstObjects();
-		};
-
-		var createFirstObjects = function() {
 			createObjects(capitalize(model), json, finished);
 		};
 
+		var createObjectsInParse = function(model, json, next) {
+			if(model==='User') {
+				async.each(json, function(userInfo, nextUser) {
+					delete userInfo.bcryptPassword;
+					userInfo.password = randomstring.generate();
+					kaiseki.createUser(userInfo, function(err, res, body, success) {
+						if(err) return console.log('error on createUser', err);
+						if(!success) return console.log('no success on createUser', body);
+						nextUser();
+					});
+				}, function(err) {
+					next(err, res, null, true);
+				});
+			} else {
+				kaiseki.createObjects(model, json, next);
+			}
+		}
+
 		var createObjects = function(model, json, next) {
 			if(json.length > max) {
-				kaiseki.createObjects(model, json.slice(0,max), function(err, response, body, success) {
+				createObjectsInParse(model, json.slice(0,max), function(err, response, body, success) {
 					if(err) return console.log('error on createObject', err);
 					if(!success) return console.log('no success on createObject', body);
 					createObjects(model, json.slice(max), next);
 				});
 			} else {
-				kaiseki.createObjects(model, json, next);
+				createObjectsInParse(model, json, next);
 			}
 		};
 
 		var finished = function(err, response, body, success) {
 			if(err) return console.log('error on finished', err);
-			if(!success) return console.log('no success on finished', body);
+			if(!success) return console.log('no success on finished', err, response, body, success);
 			res.redirect('/');
 		};
 
@@ -130,19 +144,18 @@ app.get('/', function(req, res) {
 	var html = '<ul>'
 	models.forEach(function(model) {
 		html += '<li><a href="./' + model + '">' + model + '.json</a> ';
-		if(model!=='user')
-			html += '<a href="/' + model + '/api">add through API</a></li>';
-		});
-		html += '</ul>';
-		res.send(html);
+		html += '<a href="/' + model + '/api">add through API</a></li>';
 	});
+	html += '</ul>';
+	res.send(html);
+});
 
-	bcrypt.genSalt(10, function(err, _salt) {
-		salt = _salt;
-		initApp();
-	});
+bcrypt.genSalt(10, function(err, _salt) {
+	salt = _salt;
+	initApp();
+});
 
-	function initApp() {
-		kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
-		app.listen(process.env.PORT || 3000);
-	}
+function initApp() {
+	kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
+	app.listen(process.env.PORT || 3000);
+}

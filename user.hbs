@@ -3,10 +3,15 @@
 {{#repeat 100}}
 
 {
-	"username": "{{firstName}}",
+	"username": "{{firstName}}{{number 0 999999 pad=true}}",
 	"sessionToken": "{{token}}",
 	"bcryptPassword": "{{password}}",
-	"email": "{{firstName}}@{{lastName}}.{{domain}}"
+	"email": "{{firstName}}{{number 0 999999 pad=true}}@{{lastName}}{{number 0 999999 pad=true}}.{{domain}}",
+	"media": {
+		"__type": "File",
+		"name": "tfss-40261f99-531b-491e-a8ca-83f491b40d74-IMG_0191.PNG",
+		"url": "http://files.parsetfss.com/f24e99b1-392a-4c55-8728-44c981c3eec4/tfss-40261f99-531b-491e-a8ca-83f491b40d74-IMG_0191.PNG"
+	}
 }
 
 {{/repeat}}
