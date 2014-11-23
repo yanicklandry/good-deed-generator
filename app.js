@@ -24,9 +24,6 @@ var domains = ['com', 'net', 'org', 'gov', 'qc.ca'];
 var all_users;
 
 //HELPERS
-var random = function(low, high) {
-	return Math.floor(Math.random() * (high - low) + low);
-};
 var capitalize = function(s)
 {
 	return s && s[0].toUpperCase() + s.slice(1);
@@ -39,9 +36,12 @@ Array.prototype.chunk = function(chunkSize) {
 		})
 	);
 }
+Array.prototype.random = function() {
+	return this[_.random(this.length-1)];
+}
 var helpers = {
 	domain: function(options) {
-		return domains[random(0,domains.length)];
+		return domains.random();
 	},
 	token: function() {
 		return randomstring.generate();
