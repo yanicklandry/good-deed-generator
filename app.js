@@ -9,19 +9,19 @@ var Kaiseki = require('kaiseki');
 var async = require('async');
 var kaiseki;
 
+//SETUP
 var app = express();
-
 try {
 	_.extend(process.env, require('./config'));
 } catch (err) {
 	console.log('error on config', err)
 }
 
+//GLOBAL VARS
 var salt = "";
-
 var models = ['deed', 'user'];
-
 var domains = ['com', 'net', 'org', 'gov', 'qc.ca'];
+var all_users;
 
 //HELPERS
 var random = function(low, high) {
@@ -39,7 +39,6 @@ Array.prototype.chunk = function(chunkSize) {
 		})
 	);
 }
-
 var helpers = {
 	domain: function(options) {
 		return domains[random(0,domains.length)];
@@ -80,6 +79,8 @@ var generate = function(model, next) {
 
 	parseTemplate();
 };
+
+//ROUTES
 
 models.forEach(function(model) {
 	app.get('/' + model, function(req, res) {
@@ -150,12 +151,14 @@ app.get('/', function(req, res) {
 	res.send(html);
 });
 
-bcrypt.genSalt(10, function(err, _salt) {
-	salt = _salt;
-	initApp();
-});
+//INIT
 
 function initApp() {
 	kaiseki = new Kaiseki(process.env.PARSE_APP_ID, process.env.PARSE_REST_API_KEY);
 	app.listen(process.env.PORT || 3000);
 }
+
+bcrypt.genSalt(10, function(err, _salt) {
+	salt = _salt;
+	initApp();
+});
