@@ -10,6 +10,7 @@
 	var bcrypt = require('bcrypt');
 	var Kaiseki = require('kaiseki');
 	var async = require('async');
+	var im = require('imagemagick');
 	var kaiseki;
 
 	//SETUP
@@ -42,6 +43,15 @@
 	Array.prototype.random = function() {
 		return this[_.random(this.length-1)];
 	};
+	var randomColor = function() {
+		var color = '';
+		for(var i=0; i<3; i++) {
+			var char = _.random(255).toString(16);
+			if(char.length===1) char = '0' + char;
+			color += char;
+		}
+		return color;
+	};
 	var helpers = {
 		domain: function() {
 			return domains.random();
@@ -62,9 +72,12 @@
 			json = JSON.parse(json);
 
 			var iterateResults = function(i, nextResult) {
-				var request = require('request').defaults({ encoding: null });
-				request.get('http://thecatapi.com/api/images/get', function (err, res, buffer) {
-					kaiseki.uploadFileBuffer(buffer, 'image/jpeg', 'cat' + i,
+				generateAvatar(function(err, data) {
+					if(err) {
+						console.log('err!', data);
+						nextResult();
+					}
+					kaiseki.uploadFileBuffer(new Buffer(data, "binary"), 'image/png', 'cat' + i,
 					function(err, res, body, success) {
 						if(err) return console.log('error on uploadFile', err);
 						if(!success) return console.log('no success on uploadFile', body);
@@ -72,6 +85,7 @@
 						json.results[i].media.url = body.url;
 						nextResult();
 					});
+
 				});
 			};
 
@@ -172,6 +186,15 @@
 		});
 	});
 
+	var generateAvatar = function(next) {
+		var svg = fs.readFileSync('images/circle.svg', 'utf8');
+		svg = svg.replace('{{stroke}}', '#' + randomColor());
+		svg = svg.replace('{{fill}}', '#' + randomColor());
+		var conv = im.convert(['svg:-', 'png:-'], next);
+		conv.stdin.write(svg);
+		conv.stdin.end();
+	};
+
 	app.get('/', function(req, res) {
 		var html = '<ul>';
 		models.forEach(function(model) {
@@ -180,6 +203,13 @@
 		});
 		html += '</ul>';
 		res.send(html);
+	});
+
+	app.get('/avatar', function(req, res) {
+		generateAvatar(function(err, stdout) {
+			res.writeHead(200, {'Content-Type': 'image/png' });
+			res.end(stdout, 'binary');
+		});
 	});
 
 	//INIT
