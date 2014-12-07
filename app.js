@@ -193,8 +193,7 @@
 		svg = svg.replace(/{{head_height}}/g, _.random(30,50));
 		svg = svg.replace(/{{body_width}}/g, _.random(40,60));
 		svg = svg.replace(/{{body_height}}/g, _.random(40,60));
-		console.log(svg);
-		var conv = im.convert(['svg:-', 'png:-'], next);
+		var conv = im.convert(['-background', 'none', 'svg:-', 'png:-'], next);
 		conv.stdin.write(svg);
 		conv.stdin.end();
 	};
@@ -211,6 +210,7 @@
 
 	app.get('/avatar', function(req, res) {
 		generateAvatar(function(err, stdout) {
+			if(err) console.log('error on generateAvatar !', err);
 			res.writeHead(200, {'Content-Type': 'image/png' });
 			res.end(stdout, 'binary');
 		});
