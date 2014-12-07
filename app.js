@@ -190,7 +190,10 @@
 		var svg = fs.readFileSync('images/circle.svg', 'utf8');
 		svg = svg.replace(/{{fill}}/g, '#' + randomColor());
 		svg = svg.replace(/{{head_width}}/g, _.random(30,50));
+		svg = svg.replace(/{{head_height}}/g, _.random(30,50));
 		svg = svg.replace(/{{body_width}}/g, _.random(40,60));
+		svg = svg.replace(/{{body_height}}/g, _.random(40,60));
+		console.log(svg);
 		var conv = im.convert(['svg:-', 'png:-'], next);
 		conv.stdin.write(svg);
 		conv.stdin.end();
